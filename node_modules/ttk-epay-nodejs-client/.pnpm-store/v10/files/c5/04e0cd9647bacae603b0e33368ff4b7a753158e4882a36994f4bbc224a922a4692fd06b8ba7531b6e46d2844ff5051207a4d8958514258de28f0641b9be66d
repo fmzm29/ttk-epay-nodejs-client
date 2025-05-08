@@ -1,0 +1,10 @@
+{
+  "name": "hello-world-faycal",
+  "version": "1.0.0",
+  "description": "A simple hello function",
+  "main": "src/index.js",
+  "type": "module",
+  "keywords": ["hello", "example"],
+  "author": "Faycal",
+  "license": "MIT"
+}

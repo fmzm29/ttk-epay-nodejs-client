@@ -1,0 +1,4 @@
+// test.js
+import { sayHello } from './src/index.js';
+
+console.log(sayHello("Faycal"));
