@@ -2,7 +2,7 @@
 
 A comprehensive client SDK for interacting with the TTK-Epay payment processing API. This library provides a simple interface for managing invoices, processing payments, and generating receipts.
 
-[![npm version](https://img.shields.io/npm/v/ttk-epay.svg)]([https://www.npmjs.com/package/ttk-epay](https://www.npmjs.com/package/ttk-epay-nodejs-client))
+[![npm version](https://img.shields.io/npm/v/ttk-epay.svg)]([https://www.npmjs.com/package/ttk-epay-nodejs-client))
 [![PyPI version](https://img.shields.io/pypi/v/ttk-epay.svg)](https://pypi.org/project/ttk-epay/)
 [![License](https://img.shields.io/github/license/yourusername/ttk-epay.svg)](https://github.com/yourusername/ttk-epay/blob/main/LICENSE)
 
