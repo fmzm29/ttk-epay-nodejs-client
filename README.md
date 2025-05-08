@@ -2,7 +2,7 @@
 
 A comprehensive client SDK for interacting with the TTK-Epay payment processing API. This library provides a simple interface for managing invoices, processing payments, and generating receipts.
 
-[![npm version](https://img.shields.io/npm/v/ttk-epay.svg)]([https://www.npmjs.com/package/ttk-epay-nodejs-client))
+[![npm version](https://img.shields.io/npm/v/ttk-epay-nodejs-client.svg)]([https://www.npmjs.com/package/ttk-epay-nodejs-client)
 [![PyPI version](https://img.shields.io/pypi/v/ttk-epay.svg)](https://pypi.org/project/ttk-epay/)
 [![License](https://img.shields.io/github/license/yourusername/ttk-epay.svg)](https://github.com/yourusername/ttk-epay/blob/main/LICENSE)
 
@@ -29,18 +29,23 @@ npm install ttk-epay-nodejs-client
 ### JavaScript
 
 ```javascript
-const { Ttk_Epay, Invoice, InvoiceDto } = require('ttk-epay');
+const { ttk_epay } = require('ttk-epay-nodejs-client'); 
 
 // Initialize the client
-const client = new Ttk_Epay();
+const client = new ttk_epay();
 
-// Get list of invoices (async)
+// Example: Get list of invoices
 async function getInvoices() {
-  const invoices = await client.get_invoices(1, 10);
-  console.log(invoices);
+  try {
+    const invoices = await client.get_invoices(1, 10);
+    console.log(invoices);
+  } catch (error) {
+    console.error('Error fetching invoices:', error);
+  }
 }
 
 getInvoices();
+
 ```
 
 ## API Reference
@@ -62,14 +67,22 @@ Retrieves a paginated list of invoices.
 
 **Example (JavaScript):**
 ```javascript
+const { ttk_epay } = require('ttk-epay-nodejs-client'); 
+
+// Initialize the client
+const client = new ttk_epay();
+
+// Example: Get list of invoices
 async function listInvoices() {
-  const invoices = await client.get_invoices(1, 20);
-  console.log(`Current page: ${invoices.CURRENTPAGE}`);
-  console.log(`Total pages: ${invoices.TOTALPAGES}`);
-  invoices.invoices.forEach(invoice => {
-    console.log(`Invoice #${invoice.INVOICE_NUMBER} - ${invoice.CLIENT_NAME}`);
-  });
+  try {
+    const response = await client.get_invoices(1, 20);
+    console.log('Raw response:', JSON.stringify(response, null, 2));
+  } catch (error) {
+    console.error('Error fetching invoices:', error.message);
+  }
 }
+
+listInvoices();
 ```
 
 #### `create_invoice(invoice_data)`
@@ -84,25 +97,38 @@ Creates a new invoice.
 
 **Example (JavaScript):**
 ```javascript
+const { ttk_epay } = require('ttk-epay-nodejs-client'); 
+
+// Initialize the client
+const client = new ttk_epay();
+
 async function createNewInvoice() {
-  const newInvoice = new Invoice({
-    ID: 0,  // ID will be assigned by the server
-    INVOICE_NUMBER: 12345,
-    CLIENT_NAME: "Acme Corporation",
-    CLIENT_CODE: 789,
-    CLIENT_ADDRESS: "123 Business Ave, Suite 100",
-    CLIENT_MAIL: "billing@acme.com",
-    NET_AMOUNT: 1000.00,
-    INVOICE_TVA: 0.19,  // 19% VAT
-    AMOUNT_TVA: 190.00,
-    AMOUNT_TTC: 1190.00,
-    PRODUCT_NAME: "Enterprise Plan Subscription",
-    INVOICE_DATE: "2025-05-08T10:00:00.000Z"
-  });
-  
-  const createdInvoice = await client.create_invoice(newInvoice);
-  console.log(`Created invoice with ID: ${createdInvoice.ID}`);
+  try {
+    // Prepare the invoice data (use plain object)
+    const newInvoice = {
+      INVOICE_NUMBER: 12345,
+      CLIENT_NAME: "Acme Corporation",
+      CLIENT_CODE: 789,
+      CLIENT_ADDRESS: "123 Business Ave, Suite 100",
+      CLIENT_MAIL: "billing@acme.com",
+      NET_AMOUNT: 1000.00,
+      INVOICE_TVA: 0.19,
+      AMOUNT_TVA: 190.00,
+      AMOUNT_TTC: 1190.00,
+      PRODUCT_NAME: "Enterprise Plan Subscription",
+      INVOICE_DATE: "2025-05-08T10:00:00.000Z"
+    };
+
+    // Create the invoice
+    const createdInvoice = await client.create_invoice(newInvoice);
+    console.log(`Created invoice with ID: ${createdInvoice.ID}`);
+  } catch (error) {
+    console.error('Error creating invoice:', error.message);
+  }
 }
+
+createNewInvoice();
+
 ```
 
 #### `get_invoice_by_order_id(order_id)`
@@ -117,14 +143,26 @@ Retrieves a specific invoice by its order ID.
 
 **Example (JavaScript):**
 ```javascript
+const { ttk_epay } = require('ttk-epay-nodejs-client'); 
+
+// Initialize the client
+const client = new ttk_epay();
+
 async function findInvoiceByOrderId() {
   try {
-    const invoice = await client.get_invoice_by_order_id("ORD-2025-1234");
-    console.log(`Found invoice: ${invoice.INVOICE_NUMBER} for ${invoice.CLIENT_NAME}`);
+    const orderId = "35";
+    const invoice = await client.get_invoice_by_order_id(orderId);
+    
+    console.log(`Found invoice - Order ID: ${invoice.ORDER_ID}, Amount: ${invoice.NET_AMOUNT}, Paid: ${invoice.IS_PAID ? 'Yes' : 'No'}`);
+    return invoice;
   } catch (error) {
-    console.error(`Invoice not found: ${error.message}`);
+    console.error(`Error finding invoice: ${error.message}`);
+    return null;
   }
 }
+
+
+findInvoiceByOrderId();
 ```
 
 #### `update_invoice(invoice_id, invoice_data)`
@@ -140,19 +178,29 @@ Updates an existing invoice.
 
 **Example (JavaScript):**
 ```javascript
+const { ttk_epay } = require('ttk-epay-nodejs-client'); 
+
+// Initialize the client
+const client = new ttk_epay();
+
 async function updateExistingInvoice() {
-  // First get the invoice
-  const invoice = await client.get_invoice_by_order_id("ORD-2025-1234");
-  
-  // Update fields
-  invoice.NET_AMOUNT = 1500.00;
-  invoice.AMOUNT_TVA = 285.00;  // 19% of 1500
-  invoice.AMOUNT_TTC = 1785.00;
-  
-  // Update the invoice
-  const result = await client.update_invoice(invoice.ID, invoice);
-  console.log(`Updated invoice amount: ${result.AMOUNT_TTC}`);
+  try {
+    const orderId = "35";
+    const invoice = await client.get_invoice_by_order_id(orderId);
+    
+    // Update invoice details
+    invoice.NET_AMOUNT = 1500.00;
+    invoice.IS_PAID = true; // Change from No to Yes
+    
+    const result = await client.update_invoice(invoice.ID, invoice);
+    console.log(`Updated invoice: Amount=${result.NET_AMOUNT}, Paid=${result.IS_PAID ? 'Yes' : 'No'}`);
+    return result;
+  } catch (error) {
+    console.error(`Update failed: ${error.message}`);
+    return null;
+  }
 }
+updateExistingInvoice();
 ```
 
 #### `get_payments(options)`
@@ -172,19 +220,33 @@ Retrieves a list of payments with optional filtering.
 
 **Example (JavaScript):**
 ```javascript
+const { ttk_epay } = require('ttk-epay-nodejs-client'); 
+
+// Initialize the client
+const client = new ttk_epay();
+
 async function getRecentPayments() {
   const endDate = new Date().toISOString();
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - 30);
   
-  const payments = await client.get_payments({
-    pageSize: 50,
-    from_date: startDate.toISOString(),
-    to_date: endDate
-  });
-  
-  console.log(`Found ${payments.payments.length} payments in the last 30 days`);
+  try {
+    // Fetching payments from the last 30 days
+    const payments = await client.get_payments({
+      pageSize: 50,
+      from_date: startDate.toISOString(),
+      to_date: endDate
+    });
+    
+    // Assuming 'payments' is an array or object with a 'payments' field
+    console.log(`Found ${payments.length} payments in the last 30 days`);
+  } catch (error) {
+    console.error("Error fetching payments:", error);
+  }
 }
+
+
+getRecentPayments();
 ```
 
 ### Document Operations
@@ -201,15 +263,31 @@ Generates a PDF receipt for a specific payment.
 
 **Example (JavaScript):**
 ```javascript
+const { ttk_epay } = require('ttk-epay-nodejs-client'); 
+
+// Initialize the client
+const client = new ttk_epay();
+
 const fs = require('fs');
 
 async function savePdfReceipt() {
   const satimOrderId = "SATIM-12345";
-  const pdfData = await client.get_pdf_recipt(satimOrderId);
   
-  fs.writeFileSync(`receipt_${satimOrderId}.pdf`, pdfData);
-  console.log(`Receipt saved to receipt_${satimOrderId}.pdf`);
+  try {
+    // Fetching the PDF receipt data
+    const pdfData = await client.get_pdf_recipt(satimOrderId);
+    
+    // Writing the PDF data to a file
+    fs.writeFileSync(`receipt_${satimOrderId}.pdf`, pdfData);
+    console.log(`Receipt saved to receipt_${satimOrderId}.pdf`);
+  } catch (error) {
+    console.error("Error saving PDF receipt:", error);
+  }
 }
+
+
+
+savePdfReceipt();
 ```
 
 #### `send_pdf_recipt_mail(satim_order_id, email)`
@@ -225,14 +303,32 @@ Sends a PDF receipt to a specified email address.
 
 **Example (JavaScript):**
 ```javascript
+const { ttk_epay } = require('ttk-epay-nodejs-client'); 
+
+// Initialize the client
+const client = new ttk_epay();
+
 async function emailReceipt() {
+  const satimOrderId = "SATIM-12345";
+  const email = "customer@example.com";
+  
   try {
-    const result = await client.send_pdf_recipt_mail("SATIM-12345", "customer@example.com");
-    console.log("Receipt sent successfully to customer@example.com");
+    // Sending the receipt via email
+    const result = await client.send_pdf_recipt_mail(satimOrderId, email);
+    
+    // Check if the result is in the expected format or status
+    if (result) {
+      console.log(`Receipt sent successfully to ${email}`);
+    } else {
+      console.log("Receipt could not be sent. No result returned.");
+    }
   } catch (error) {
     console.error(`Failed to send receipt: ${error.message}`);
   }
 }
+
+
+emailReceipt();
 ```
 
 ### Payment Operations
@@ -262,11 +358,22 @@ async function processPayment() {
     NET_AMOUNT: 750.00
   });
 
-  // Process the payment
-  const result = await client.post_payement(payment);
-  console.log(`Payment initialized with Satim Order ID: ${result.SATIM_ORDER_ID}`);
-  console.log(`Payment URL: ${result.PAYMENT_URL}`);
+  try {
+    // Process the payment
+    const result = await client.post_payement(payment);
+    
+    // Check if the result has the expected fields
+    if (result && result.SATIM_ORDER_ID && result.PAYMENT_URL) {
+      console.log(`Payment initialized with Satim Order ID: ${result.SATIM_ORDER_ID}`);
+      console.log(`Payment URL: ${result.PAYMENT_URL}`);
+    } else {
+      console.error("Unexpected result format: Missing SATIM_ORDER_ID or PAYMENT_URL");
+    }
+  } catch (error) {
+    console.error(`Error processing payment: ${error.message}`);
+  }
 }
+
 ```
 
 #### `get_payment_status(satim_order_id)`
@@ -282,13 +389,29 @@ Checks the status of a payment.
 **Example (JavaScript):**
 ```javascript
 async function checkPaymentStatus() {
-  const status = await client.get_payment_status("SATIM-12345");
-  console.log(`Payment status: ${status.STATUS}`);
-  console.log(`Transaction time: ${status.TRANSACTION_TIME}`);
-  if (status.STATUS === 'COMPLETED') {
-    console.log(`Authorization code: ${status.AUTHORIZATION_CODE}`);
+  try {
+    // Fetching the payment status
+    const status = await client.get_payment_status("SATIM-12345");
+    
+    // Check if the status object is valid and has expected properties
+    if (status && status.STATUS && status.TRANSACTION_TIME) {
+      console.log(`Payment status: ${status.STATUS}`);
+      console.log(`Transaction time: ${status.TRANSACTION_TIME}`);
+      
+      // If payment is completed, log the authorization code
+      if (status.STATUS === 'COMPLETED' && status.AUTHORIZATION_CODE) {
+        console.log(`Authorization code: ${status.AUTHORIZATION_CODE}`);
+      } else if (status.STATUS === 'COMPLETED') {
+        console.log("Authorization code not available.");
+      }
+    } else {
+      console.error("Invalid status response: Missing required fields.");
+    }
+  } catch (error) {
+    console.error(`Error checking payment status: ${error.message}`);
   }
 }
+
 ```
 
 ## Data Models
@@ -351,6 +474,23 @@ Simplified data model for payment processing operations.
 The JavaScript library uses Promise-based error handling:
 
 ```javascript
+const axios = require('axios');
+
+// Sample client function simulating the API call
+const client = {
+  get_invoice_by_order_id: (orderId) => {
+    return new Promise((resolve, reject) => {
+      // Simulating a response or error based on the orderId
+      if (orderId === "NON-EXISTENT") {
+        reject(new Error("Invoice not found"));
+      } else {
+        resolve({ orderId: orderId, amount: 100 });
+      }
+    });
+  }
+};
+
+// 1. Promise-based error handling using .then() and .catch()
 client.get_invoice_by_order_id("NON-EXISTENT")
   .then(invoice => {
     console.log("Invoice found:", invoice);
@@ -359,13 +499,18 @@ client.get_invoice_by_order_id("NON-EXISTENT")
     console.error("Error details:", error.message);
   });
 
-// Or with async/await:
-try {
-  const invoice = await client.get_invoice_by_order_id("NON-EXISTENT");
-  console.log("Invoice found:", invoice);
-} catch (error) {
-  console.error("Error details:", error.message);
+// 2. Async/await error handling with try-catch
+async function fetchInvoice() {
+  try {
+    const invoice = await client.get_invoice_by_order_id("NON-EXISTENT");
+    console.log("Invoice found:", invoice);
+  } catch (error) {
+    console.error("Error details:", error.message);
+  }
 }
+
+fetchInvoice();
+
 ```
 
 ## License
@@ -420,346 +565,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 
 
-
-
-
-# ttk-epay-nodejs-client
-
-A simple and efficient Node.js client for integrating with the ttk-epay API.
-
-## Features
-- Easy-to-use API client for ttk-epay.
-- Supports all major API functionalities.
-- Well-documented and simple to integrate.
-
-## Installation
-
-To install the package, use npm:
-
-```bash
-npm install ttk-epay-nodejs-client
-```
-
-## Exampel
-```javascript
-const { ttk_epay } = require('ttk-epay-nodejs-client');
-
-async function main() {
-  const client = new ttk_epay();
-
-  try {
-    const invoices = await client.get_invoices(1, 10);
-    console.log('Invoices:', invoices);
-  } catch (err) {
-    console.error('Error:', err.message);
-  }
-}
-
-main();
-```
-
-
-
-## Exampel
-```javascript
-// example-usage.js
-
-const { Ttk_Epay, Invoice, InvoiceDto } = require('./index');
-
-// Initialize the client
-const client = new Ttk_Epay();
-
-// Example 1: Get list of invoices
-async function listInvoices() {
-  try {
-    console.log("\n=== Example 1: Listing Invoices ===");
-    const invoices = await client.get_invoices(1, 10);
-    console.log(`Retrieved ${invoices.invoices?.length || 0} invoices`);
-    console.log(`Current page: ${invoices.CURRENTPAGE} of ${invoices.TOTALPAGES}`);
-    
-    // Display first invoice if available
-    if (invoices.invoices && invoices.invoices.length > 0) {
-      const firstInvoice = invoices.invoices[0];
-      console.log("\nSample invoice:");
-      console.log(`- Invoice #${firstInvoice.INVOICE_NUMBER}`);
-      console.log(`- Client: ${firstInvoice.CLIENT_NAME}`);
-      console.log(`- Amount: ${firstInvoice.AMOUNT_TTC}`);
-      console.log(`- Status: ${firstInvoice.IS_PAID ? 'Paid' : 'Unpaid'}`);
-    }
-    return invoices;
-  } catch (error) {
-    console.error("Error listing invoices:", error.message);
-    if (error.response) {
-      console.error(`Status: ${error.response.status}`);
-      console.error(`Response data:`, error.response.data);
-    }
-  }
-}
-
-// Example 2: Create a new invoice
-async function createInvoice() {
-  try {
-    console.log("\n=== Example 2: Creating an Invoice ===");
-    
-    // Generate a unique invoice number using timestamp
-    const invoiceNumber = parseInt(`${Date.now()}`.substring(0, 10));
-    
-    const newInvoice = new Invoice({
-      ID: 0, // Will be assigned by server
-      INVOICE_NUMBER: invoiceNumber,
-      ORDER_ID: `ORD-${invoiceNumber}`,
-      INVOICE_DATE: new Date().toISOString(),
-      INVOICE_TYPE_CODE: "STD",
-      NET_AMOUNT: 1000.00,
-      INVOICE_TVA: 0.19, // 19% VAT
-      AMOUNT_TVA: 190.00,
-      AMOUNT_TTC: 1190.00,
-      INVOICE_STATE_CODE: "NEW",
-      ORDER_NAME: "Spring Collection Purchase",
-      CLIENT_CODE: 123456,
-      CLIENT_NAME: "Acme Corporation",
-      CLIENT_NRC: "RC123456789",
-      CLIENT_ADDRESS: "123 Commerce Blvd, Business District",
-      CLIENT_MAIL: "finance@acmecorp.example",
-      CLIENT_IDF: "TAX987654321",
-      PRODUCT_NAME: "Enterprise Software Package",
-      IS_PAID: false
-    });
-    
-    console.log("Creating invoice...");
-    const createdInvoice = await client.create_invoice(newInvoice);
-    
-    console.log(`Invoice created successfully!`);
-    console.log(`- ID: ${createdInvoice.ID}`);
-    console.log(`- Invoice #: ${createdInvoice.INVOICE_NUMBER}`);
-    console.log(`- Client: ${createdInvoice.CLIENT_NAME}`);
-    console.log(`- Amount: ${createdInvoice.AMOUNT_TTC}`);
-    
-    return createdInvoice;
-  } catch (error) {
-    console.error("Error creating invoice:", error.message);
-    if (error.response) {
-      console.error(`Status: ${error.response.status}`);
-      console.error(`Response data:`, error.response.data);
-    }
-  }
-}
-
-// Example 3: Get invoice by order ID
-async function getInvoiceByOrderId(orderId) {
-  try {
-    console.log(`\n=== Example 3: Finding Invoice by Order ID ===`);
-    console.log(`Looking up order ID: ${orderId}`);
-    
-    const invoice = await client.get_invoice_by_order_id(orderId);
-    
-    console.log("Invoice found!");
-    console.log(`- Invoice #: ${invoice.INVOICE_NUMBER}`);
-    console.log(`- Client: ${invoice.CLIENT_NAME}`);
-    console.log(`- Date: ${new Date(invoice.INVOICE_DATE).toLocaleDateString()}`);
-    console.log(`- Amount: ${invoice.AMOUNT_TTC}`);
-    console.log(`- Status: ${invoice.IS_PAID ? 'Paid' : 'Unpaid'}`);
-    
-    return invoice;
-  } catch (error) {
-    console.error(`Error finding invoice with order ID ${orderId}:`, error.message);
-    if (error.response) {
-      console.error(`Status: ${error.response.status}`);
-      console.error(`Response data:`, error.response.data);
-    }
-  }
-}
-
-// Example 4: Update an invoice
-async function updateInvoice(invoice) {
-  try {
-    console.log(`\n=== Example 4: Updating an Invoice ===`);
-    console.log(`Updating invoice #${invoice.INVOICE_NUMBER}`);
-    
-    // Modify some fields
-    invoice.NET_AMOUNT = 1250.00;
-    invoice.INVOICE_TVA = 0.19;
-    invoice.AMOUNT_TVA = 237.50;
-    invoice.AMOUNT_TTC = 1487.50;
-    invoice.PRODUCT_NAME = `${invoice.PRODUCT_NAME} (Updated)`;
-    
-    const updatedInvoice = await client.update_invoice(invoice.ID, invoice);
-    
-    console.log("Invoice updated successfully!");
-    console.log(`- Invoice #: ${updatedInvoice.INVOICE_NUMBER}`);
-    console.log(`- Product: ${updatedInvoice.PRODUCT_NAME}`);
-    console.log(`- New Amount: ${updatedInvoice.AMOUNT_TTC}`);
-    
-    return updatedInvoice;
-  } catch (error) {
-    console.error(`Error updating invoice:`, error.message);
-    if (error.response) {
-      console.error(`Status: ${error.response.status}`);
-      console.error(`Response data:`, error.response.data);
-    }
-  }
-}
-
-// Example 5: Get payments with filters
-async function getFilteredPayments() {
-  try {
-    console.log(`\n=== Example 5: Getting Filtered Payments ===`);
-    
-    // Get payments from the last 30 days
-    const endDate = new Date().toISOString();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 30);
-    const fromDate = startDate.toISOString();
-    
-    console.log(`Fetching payments from ${new Date(fromDate).toLocaleDateString()} to ${new Date(endDate).toLocaleDateString()}`);
-    
-    const paymentsResult = await client.get_payments({
-      pageNumber: 1,
-      pageSize: 20,
-      from_date: fromDate,
-      to_date: endDate
-    });
-    
-    console.log(`Retrieved ${paymentsResult.payments?.length || 0} payments`);
-    console.log(`Current page: ${paymentsResult.CURRENTPAGE} of ${paymentsResult.TOTALPAGES}`);
-    
-    // Display some payment info if available
-    if (paymentsResult.payments && paymentsResult.payments.length > 0) {
-      console.log("\nRecent payments:");
-      paymentsResult.payments.slice(0, 3).forEach((payment, index) => {
-        console.log(`\nPayment ${index + 1}:`);
-        console.log(`- Order ID: ${payment.SATIM_ORDER_ID}`);
-        console.log(`- Status: ${payment.STATUS}`);
-        console.log(`- Amount: ${payment.AMOUNT}`);
-        console.log(`- Date: ${new Date(payment.TRANSACTION_TIME).toLocaleString()}`);
-      });
-    }
-    
-    return paymentsResult;
-  } catch (error) {
-    console.error("Error getting payments:", error.message);
-    if (error.response) {
-      console.error(`Status: ${error.response.status}`);
-      console.error(`Response data:`, error.response.data);
-    }
-  }
-}
-
-// Example 6: Process a payment
-async function processPayment() {
-  try {
-    console.log(`\n=== Example 6: Processing a Payment ===`);
-    
-    // Generate a unique invoice number using timestamp
-    const invoiceNumber = parseInt(`${Date.now()}`.substring(0, 10));
-    
-    const paymentData = new InvoiceDto({
-      INVOICE_NUMBER: invoiceNumber,
-      ORDER_ID: `ORD-${invoiceNumber}`,
-      INVOICE_DATE: new Date().toISOString(),
-      INVOICE_TYPE_CODE: "ECOM",
-      NET_AMOUNT: 750.00,
-      CLIENT_CODE: 789012,
-      CLIENT_NAME: "Jane Smith",
-      CLIENT_ADDRESS: "456 Customer Lane, Shopping District",
-      CLIENT_MAIL: "jane.smith@example.com",
-      PRODUCT_NAME: "Premium Subscription (1 Year)"
-    });
-    
-    console.log("Processing payment...");
-    console.log(`- Amount: ${paymentData.NET_AMOUNT}`);
-    console.log(`- Client: ${paymentData.CLIENT_NAME}`);
-    
-    const paymentResult = await client.post_payement(paymentData);
-    
-    console.log("\nPayment initialized successfully!");
-    console.log(`- Satim Order ID: ${paymentResult.SATIM_ORDER_ID}`);
-    console.log(`- Payment URL: ${paymentResult.PAYMENT_URL}`);
-    console.log(`\nCustomer should be redirected to the payment URL to complete payment.`);
-    
-    return paymentResult;
-  } catch (error) {
-    console.error("Error processing payment:", error.message);
-    if (error.response) {
-      console.error(`Status: ${error.response.status}`);
-      console.error(`Response data:`, error.response.data);
-    }
-  }
-}
-
-// Example 7: Check payment status
-async function checkPaymentStatus(satimOrderId) {
-  try {
-    console.log(`\n=== Example 7: Checking Payment Status ===`);
-    console.log(`Checking status for order: ${satimOrderId}`);
-    
-    const statusResult = await client.get_payment_status(satimOrderId);
-    
-    console.log("\nPayment status retrieved:");
-    console.log(`- Status: ${statusResult.STATUS}`);
-    console.log(`- Transaction Time: ${new Date(statusResult.TRANSACTION_TIME).toLocaleString()}`);
-    
-    if (statusResult.STATUS === 'COMPLETED') {
-      console.log(`- Authorization Code: ${statusResult.AUTHORIZATION_CODE}`);
-      console.log(`- Card: ${statusResult.CARD_NUMBER} (${statusResult.CARD_TYPE})`);
-    } else if (statusResult.STATUS === 'FAILED') {
-      console.log(`- Error Code: ${statusResult.ERROR_CODE}`);
-      console.log(`- Error Description: ${statusResult.ERROR_DESCRIPTION}`);
-    }
-    
-    return statusResult;
-  } catch (error) {
-    console.error(`Error checking payment status:`, error.message);
-    if (error.response) {
-      console.error(`Status: ${error.response.status}`);
-      console.error(`Response data:`, error.response.data);
-    }
-  }
-}
-
-// Example 8: Generate and save PDF receipt
-async function generatePdfReceipt(satimOrderId) {
-  try {
-    console.log(`\n=== Example 8: Generating PDF Receipt ===`);
-    console.log(`Generating receipt for order: ${satimOrderId}`);
-    
-    const pdfData = await client.get_pdf_recipt(satimOrderId);
-    
-    // In a real application, you would save this to a file
-    console.log(`PDF receipt generated successfully!`);
-    console.log(`- Size: ${pdfData.length} bytes`);
-    console.log(`- You would normally save this to a file or serve it to the user`);
-    
-    // Example of saving (commented out to avoid file system operations in this example)
-    /*
-    const fs = require('fs');
-    fs.writeFileSync(`receipt_${satimOrderId}.pdf`, pdfData);
-    console.log(`- Saved to: receipt_${satimOrderId}.pdf`);
-    */
-    
-    return pdfData;
-  } catch (error) {
-    console.error(`Error generating PDF receipt:`, error.message);
-    if (error.response) {
-      console.error(`Status: ${error.response.status}`);
-      console.error(`Response data:`, error.response.data);
-    }
-  }
-}
-
-// Example 9: Send receipt by email
-async function sendReceiptByEmail(satimOrderId, email) {
-  try {
-    console.log(`\n=== Example 9: Sending Receipt by Email ===`);
-    console.log(`Sending receipt for order: ${satimOrderId}`);
-    console.log(`To email: ${email}`);
-    
-    const emailResult = await client.send_pdf_recipt_mail(satimOrderId, email);
-    
-    console.log("\nEmail sent successfully!");
-    if (typeof emailResult === 'object') {
-      console.log(`- Message: ${emailResult.message || 'Receipt sent'}`);
-      if (emailResult.details) {
-        console.log(`-
-```
 
