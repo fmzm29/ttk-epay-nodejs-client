@@ -99,6 +99,7 @@ Creates a new invoice.
 **Example (JavaScript):**
 ```javascript
 const { ttk_epay } = require('ttk-epay-nodejs-client'); 
+const { Invoice } = require('ttk-epay-nodejs-client/src/models.js'); // Import from your local models file
 
 // Initialize the client
 const client = new ttk_epay();
@@ -106,7 +107,7 @@ const client = new ttk_epay();
 async function createNewInvoice() {
   try {
     // Prepare the invoice data (use plain object)
-    const newInvoice = {
+    const newInvoice = new Invoice ({
       INVOICE_NUMBER: 12345,
       CLIENT_NAME: "Acme Corporation",
       CLIENT_CODE: 789,
@@ -118,7 +119,7 @@ async function createNewInvoice() {
       AMOUNT_TTC: 1190.00,
       PRODUCT_NAME: "Enterprise Plan Subscription",
       INVOICE_DATE: "2025-05-08T10:00:00.000Z"
-    };
+    });
 
     // Create the invoice
     const createdInvoice = await client.create_invoice(newInvoice);
@@ -346,11 +347,18 @@ Processes a new payment.
 
 **Example (JavaScript):**
 ```javascript
+const { ttk_epay } = require('ttk-epay-nodejs-client');
+const { InvoiceDto } = require('ttk-epay-nodejs-client/src/models.js'); // Import from your local models file
+
+// Initialize the client
+const client = new ttk_epay();
+
 async function processPayment() {
-  // Create payment data
+  // Create payment data with a unique invoice number (using timestamp)
+  const uniqueInvoiceNumber = Math.floor(Date.now() / 1000); // Unix timestamp
   const payment = new InvoiceDto({
-    INVOICE_NUMBER: 12345,
-    ORDER_ID: "ORD-2025-5678",
+    INVOICE_NUMBER: uniqueInvoiceNumber,
+    ORDER_ID: `ORD-${uniqueInvoiceNumber}`,
     CLIENT_NAME: "Jane Smith",
     CLIENT_CODE: 456,
     CLIENT_ADDRESS: "456 Customer St.",
@@ -363,17 +371,29 @@ async function processPayment() {
     // Process the payment
     const result = await client.post_payement(payment);
     
+    // Debug the result
+    console.log("Full API response:", JSON.stringify(result, null, 2));
+    
     // Check if the result has the expected fields
-    if (result && result.SATIM_ORDER_ID && result.PAYMENT_URL) {
-      console.log(`Payment initialized with Satim Order ID: ${result.SATIM_ORDER_ID}`);
-      console.log(`Payment URL: ${result.PAYMENT_URL}`);
+    if (result && result.ERROR_CODE === "0") {
+      if (result.ORDER_ID && result.FORM_URL) {
+        console.log(`Payment initialized successfully!`);
+        console.log(`Order ID: ${result.ORDER_ID}`);
+        console.log(`Payment Form URL: ${result.FORM_URL}`);
+      } else {
+        console.error("Success response missing ORDER_ID or FORM_URL:", result);
+      }
+    } else if (result && result.ERROR_CODE) {
+      console.error(`Payment API Error (${result.ERROR_CODE}): ${result.ERROR_MESSAGE}`);
     } else {
-      console.error("Unexpected result format: Missing SATIM_ORDER_ID or PAYMENT_URL");
+      console.error("Unexpected result format:", result);
     }
   } catch (error) {
     console.error(`Error processing payment: ${error.message}`);
   }
 }
+
+processPayment();
 
 ```
 
@@ -389,29 +409,40 @@ Checks the status of a payment.
 
 **Example (JavaScript):**
 ```javascript
+const { ttk_epay } = require('ttk-epay-nodejs-client');
+const client = new ttk_epay();
+
 async function checkPaymentStatus() {
   try {
-    // Fetching the payment status
-    const status = await client.get_payment_status("SATIM-12345");
+    const status = await client.get_payment_status("8LmjDNjisi0A5EAAGBYM");
     
-    // Check if the status object is valid and has expected properties
-    if (status && status.STATUS && status.TRANSACTION_TIME) {
-      console.log(`Payment status: ${status.STATUS}`);
-      console.log(`Transaction time: ${status.TRANSACTION_TIME}`);
-      
-      // If payment is completed, log the authorization code
-      if (status.STATUS === 'COMPLETED' && status.AUTHORIZATION_CODE) {
-        console.log(`Authorization code: ${status.AUTHORIZATION_CODE}`);
-      } else if (status.STATUS === 'COMPLETED') {
-        console.log("Authorization code not available.");
-      }
-    } else {
-      console.error("Invalid status response: Missing required fields.");
+    if (!status) {
+      return { error: "No payment status received" };
     }
+
+    // Determine payment status text
+    let statusText;
+    if (status.ORDER_STATUS === 0) statusText = "Rejected";
+    else if (status.ORDER_STATUS === 1) statusText = "Processing";
+    else if (status.ORDER_STATUS === 2) statusText = "Completed";
+    else statusText = "Unknown";
+
+    return {
+      status: statusText,
+      amount: status.AMOUNT,
+      currency: status.CURRENCY,
+      error: status.ERROR_CODE !== "0" ? status.ERROR_MESSAGE : null
+    };
+
   } catch (error) {
-    console.error(`Error checking payment status: ${error.message}`);
+    return { error: "Failed to check payment status" };
   }
 }
+
+// Usage
+checkPaymentStatus().then(result => {
+  console.log(result);
+});
 
 ```
 
@@ -521,50 +552,3 @@ MIT
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
